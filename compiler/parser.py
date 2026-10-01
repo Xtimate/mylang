@@ -1,8 +1,8 @@
 from errors import LangError
-from nodes import Num, Var, BinOp, Let, Print
+from nodes import Num, Str, Var, BinOp, Let, Print
 
 def describe(tok):
-    if tok.kind == "EOF": return "end of file"
+    if tok.kind == "EOF":     return "end of file"
     if tok.kind == "NEWLINE": return "end of line"
     return repr(tok.text)
 
@@ -23,7 +23,7 @@ class Parser:
         tok = self.peek()
         if tok.kind != kind:
             what = {"ID": "a name"}.get(kind, repr(kind))
-            raise LangError(f"expected {what} but got {describe(tok)}", tok.line, tok.col)
+            raise LangError(f"expected {what} but found {describe(tok)}", tok.line, tok.col)
         return self.advance()
 
     def parse_program(self):
@@ -40,18 +40,20 @@ class Parser:
 
     def statement(self):
         tok = self.peek()
-        if tok.kind == "let":
-            self.advance()
-            name = self.expect("ID")
-            self.expect("=")
-            return Let(name.text, self.expr(), name.line)
-        if tok.kind == "print":
-            self.advance()
-            self.expect("(")
-            value = self.expr()
-            self.expect(")")
-            return Print(value)
-        raise LangError(f"expected a statement but found {describe(tok)}", tok.line, tok.col)
+        match tok.kind:
+            case "let":
+                self.advance()
+                name = self.expect("ID")
+                self.expect("=")
+                return Let(name.text, self.expr(), name.line)
+            case "print":
+                self.advance()
+                self.expect("(")
+                value = self.expr()
+                self.expect(")")
+                return Print(value)
+            case _:
+                raise LangError(f"expected a statement but found {describe(tok)}", tok.line, tok.col)
 
     def expr(self):
         node = self.term()
@@ -69,15 +71,20 @@ class Parser:
 
     def atom(self):
         tok = self.peek()
-        if tok.kind == "NUM":
-            self.advance()
-            return Num(int(tok.text))
-        if tok.kind == "ID":
-            self.advance()
-            return Var(tok.text, tok.line, tok.col)
-        if tok.kind == "(":
-            self.advance()
-            node = self.expr()
-            self.expect(")")
-            return node
-        raise LangError(f"expected a value but found {describe(tok)}", tok.line, tok.col)
+        match tok.kind:
+            case "NUM":
+                self.advance()
+                return Num(int(tok.text))
+            case "STR":
+                self.advance()
+                return Str(tok.text[1:-1])
+            case "ID":
+                self.advance()
+                return Var(tok.text, tok.line, tok.col)
+            case "(":
+                self.advance()
+                node = self.expr()
+                self.expect(")")
+                return node
+            case _:
+                raise LangError(f"expected a value but found {describe(tok)}", tok.line, tok.col)

@@ -12,12 +12,13 @@ class Token:
 KEYWORDS = {"let", "print"}
 
 TOKEN_SPEC = [
-    ("COMMENT", r"#[^\n]*"),
-    ("NUM", r"\d+"),
-    ("ID", r"[A-Za-z_]\w*"),
-    ("OP", r"[+\-*/=()]"),
-    ("NEWLINE", r"\n"),
-    ("SKIP", r"[ \t\r]+"),
+    ("COMMENT",  r"#[^\n]*"),
+    ("STR",      r'"[^"\n]*"'),
+    ("NUM",      r"\d+"),
+    ("ID",       r"[A-Za-z_]\w*"),
+    ("OP",       r"[+\-*/=()]"),
+    ("NEWLINE",  r"\n"),
+    ("SKIP",     r"[ \t\r]+"),
     ("MISMATCH", r"."),
 ]
 TOKEN_RE = re.compile("|".join(f"(?P<{name}>{pat})" for name, pat in TOKEN_SPEC))
@@ -44,5 +45,6 @@ def lex(src):
                 tokens.append(Token(text, text, line, col))
             case _:
                 tokens.append(Token(kind, text, line, col))
+
     tokens.append(Token("EOF", "", line, 1))
     return tokens

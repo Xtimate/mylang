@@ -1,9 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "rt.h"
 
 void rt_panic(const char *msg) {
     fprintf(stderr, "runtime error: %s\n", msg);
+    exit(1);
+}
+
+static void panic_moved(const char *name) {
+    fprintf(stderr, "runtime error: use of moved value '%s'\n", name);
     exit(1);
 }
 
@@ -12,6 +18,37 @@ Value rt_int(long n) {
     v.tag = T_INT;
     v.as.i = n;
     return v;
+}
+
+Value rt_str(const char *s) {
+    size_t len = strlen(s);
+    char *copy = malloc(len + 1);
+    if (!copy) rt_panic("out of memory");
+    memcpy(copy, s, len + 1);
+    Value v;
+    v.tag = T_STR;
+    v.as.s = copy;
+    return v;
+}
+
+/* Borrow: read the value without taking ownership. */
+Value rt_use(const Value *v, const char *name) {
+    if (v->tag == T_MOVED) panic_moved(name);
+    return *v;
+}
+
+/* Move: take ownership. Strings leave the source dead; ints are copied. */
+Value rt_move(Value *v, const char *name) {
+    if (v->tag == T_MOVED) panic_moved(name);
+    Value out = *v;
+    if (v->tag == T_STR) v->tag = T_MOVED;
+    return out;
+}
+
+/* Free what the value owns, and mark it dead so a second drop does nothing. */
+void rt_drop(Value *v) {
+    if (v->tag == T_STR) free(v->as.s);
+    v->tag = T_MOVED;
 }
 
 Value rt_add(Value a, Value b) {
@@ -43,6 +80,8 @@ Value rt_div(Value a, Value b) {
 
 void rt_print(Value v) {
     switch (v.tag) {
-        case T_INT: printf("%ld\n", v.as.i); break;
+        case T_INT:   printf("%ld\n", v.as.i); break;
+        case T_STR:   printf("%s\n", v.as.s); break;
+        case T_MOVED: rt_panic("print of a dead value"); break;
     }
 }

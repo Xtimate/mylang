@@ -5,6 +5,10 @@ class Num:
     value: int
 
 @dataclass
+class Str:
+    value: str
+
+@dataclass
 class Var:
     name: str
     line: int
