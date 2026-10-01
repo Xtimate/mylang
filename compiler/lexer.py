@@ -44,5 +44,5 @@ def lex(src):
                 tokens.append(Token(text, text, line, col))
             case _:
                 tokens.append(Token(kind, text, line, col))
-        tokens.append(Token("EOF", "", line, 1))
-        return tokens
+    tokens.append(Token("EOF", "", line, 1))
+    return tokens

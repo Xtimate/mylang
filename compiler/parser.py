@@ -36,7 +36,7 @@ class Parser:
             tok = self.peek()
             if tok.kind not in ("NEWLINE", "EOF"):
                 raise LangError(f"unexpected {describe(tok)} after statement", tok.line, tok.col)
-            return stmts
+        return stmts
 
     def statement(self):
         tok = self.peek()
