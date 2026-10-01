@@ -78,6 +78,27 @@ Value rt_div(Value a, Value b) {
     return rt_int(0);
 }
 
+#define CMP_FN(NAME, OP)                                      \
+    Value NAME(Value a, Value b) {                            \
+        if (a.tag == T_INT && b.tag == T_INT)                 \
+            return rt_int(a.as.i OP b.as.i);                  \
+        rt_panic("cannot compare these types");               \
+        return rt_int(0);                                     \
+    }
+
+CMP_FN(rt_lt, <)
+CMP_FN(rt_gt, >)
+CMP_FN(rt_le, <=)
+CMP_FN(rt_ge, >=)
+CMP_FN(rt_eq, ==)
+CMP_FN(rt_ne, !=)
+
+    int rt_truthy(Value v) {
+        if (v.tag == T_INT) return v.as.i != 0;
+        rt_panic("condition must be an int");
+        return 0;
+    }
+
 void rt_print(Value v) {
     switch (v.tag) {
         case T_INT:   printf("%ld\n", v.as.i); break;

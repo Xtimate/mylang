@@ -27,5 +27,23 @@ class Let:
     line: int
 
 @dataclass
+class Assign:
+    name: str
+    value: object
+    line: int
+    col: int
+
+@dataclass
 class Print:
     value: object
+
+@dataclass
+class If:
+    cond: object
+    then: list
+    els: object
+
+@dataclass
+class While:
+    cond: object
+    body: list

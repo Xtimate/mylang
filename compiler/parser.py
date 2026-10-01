@@ -1,5 +1,7 @@
 from errors import LangError
-from nodes import Num, Str, Var, BinOp, Let, Print
+from nodes import Num, Str, Var, BinOp, Let, Assign, Print, If, While
+
+CMP_OPS = ("<", ">", "<=", ">=", "==", "!=")
 
 def describe(tok):
     if tok.kind == "EOF":     return "end of file"
@@ -27,16 +29,26 @@ class Parser:
         return self.advance()
 
     def parse_program(self):
+        return self.statements("EOF")
+
+    def statements(self, until):
         stmts = []
-        while self.peek().kind != "EOF":
+        while self.peek().kind not in (until, "EOF"):
             if self.peek().kind == "NEWLINE":
                 self.advance()
                 continue
             stmts.append(self.statement())
             tok = self.peek()
-            if tok.kind not in ("NEWLINE", "EOF"):
+            if tok.kind not in ("NEWLINE", "EOF", "}"):
                 raise LangError(f"unexpected {describe(tok)} after statement", tok.line, tok.col)
         return stmts
+
+    def block(self):
+        self.expect("{")
+        stmts = self.statements("}")
+        self.expect("}")
+        return stmts
+
 
     def statement(self):
         tok = self.peek()
@@ -46,16 +58,46 @@ class Parser:
                 name = self.expect("ID")
                 self.expect("=")
                 return Let(name.text, self.expr(), name.line)
+            case "ID":
+                name = self.advance()
+                self.expect("=")
+                return Assign(name.text, self.expr(), name.line, name.col)
             case "print":
                 self.advance()
                 self.expect("(")
                 value = self.expr()
                 self.expect(")")
                 return Print(value)
+            case "if":
+                return self.if_stmt()
+            case "while":
+                self.advance()
+                cond = self.expr()
+                return While(cond, self.block())
             case _:
                 raise LangError(f"expected a statement but found {describe(tok)}", tok.line, tok.col)
 
+    def if_stmt(self):
+        self.advance()
+        cond = self.expr()
+        then = self.block()
+        els = None
+        if self.peek().kind == "else":
+            self.advance()
+            if self.peek().kind == "if":
+                els = [self.if_stmt()]
+            else:
+                els = self.block()
+        return If(cond, then, els)
+
     def expr(self):
+        node = self.arith()
+        if self.peek().kind in CMP_OPS:
+            op = self.advance()
+            node = BinOp(op.kind, node, self.arith())
+        return node
+
+    def arith(self):
         node = self.term()
         while self.peek().kind in ("+", "-"):
             op = self.advance()
